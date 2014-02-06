@@ -18,7 +18,10 @@ import sys
 import subprocess
 import argparse
 import urllib
-import urllib2
+try:
+    import urllib.request as urllib2
+except:
+    import urllib2
 import re
 
 # Set hipchat info
@@ -28,7 +31,8 @@ ROOM="<room name>"
 NAME="Subversion"
 
 # svnlook location
-LOOK="svnlook"
+LOOK="<full path and name of svnlook>"
+# eg. LOOK="\"C:\Program Files (x86)\VisualSVN Server\\bin\svnlook\""
 
 ##############################################################
 ##############################################################
@@ -53,17 +57,19 @@ def sendToHipChat( msg, token, room, name ):
 	}
 
 	# urlencode and post
-	urllib2.urlopen( "https://api.hipchat.com/v1/rooms/message", urllib.urlencode( request ) )
+	
+	data = urllib.parse.urlencode( request ) 
+	binary_data = data.encode('ascii')
+	urllib2.urlopen( "https://api.hipchat.com/v1/rooms/message", binary_data )
   
 def runLook( *args ):
 	# check_output will except if it fails so we don't spam the room with 'run svnlook help for help' messages
 	return subprocess.check_output( ' '.join([LOOK] + list(args)), shell=True, stderr=subprocess.STDOUT)
 
 def getCommitInfo( repo, revision ):
-	comment = runLook("log", repo, "-r", revision)
-	author = runLook("author", repo, "-r", revision)
+	comment = runLook("log", repo, "-r", revision).decode("utf-8")
+	author = runLook("author", repo, "-r", revision).decode("utf-8").replace("\r\n", "")
 	files = runLook("changed", repo, "-r", revision)
-
 	chatMsg = ("""
 %s committed revision %s
 %s
